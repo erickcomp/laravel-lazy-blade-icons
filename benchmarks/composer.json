@@ -1,0 +1,31 @@
+{
+    "name": "erickcomp/laravel-lazy-blade-icons-benchmarks",
+    "description": "Benchmark harness for erickcomp/laravel-lazy-blade-icons. Installed separately so the package's own test suite stays lean.",
+    "license": "MIT",
+    "type": "project",
+    "repositories": [
+        {
+            "type": "path",
+            "url": ".."
+        }
+    ],
+    "require": {
+        "php": "^8.3",
+        "blade-ui-kit/blade-heroicons": "^2.7",
+        "codeat3/blade-phosphor-icons": "^2.4",
+        "davidhsianturi/blade-bootstrap-icons": "^2.2",
+        "erickcomp/laravel-lazy-blade-icons": "@dev",
+        "mallardduck/blade-lucide-icons": "^2.0",
+        "orchestra/testbench": "^11.0",
+        "owenvoke/blade-fontawesome": "^3.3",
+        "secondnetwork/blade-tabler-icons": "^3.46"
+    },
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        },
+        "sort-packages": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

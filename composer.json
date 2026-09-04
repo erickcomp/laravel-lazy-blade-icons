@@ -1,0 +1,56 @@
+{
+    "name": "erickcomp/laravel-lazy-blade-icons",
+    "type": "library",
+    "description": "Blade component-like tag syntax for blade-icons, with defer and dynamic names, without registering every icon as a Blade component on every request",
+    "keywords": [
+        "laravel",
+        "blade",
+        "blade-icons",
+        "icons",
+        "svg",
+        "performance"
+    ],
+    "license": "MIT",
+    "require": {
+        "php": "^8.3",
+        "blade-ui-kit/blade-icons": "^1.10",
+        "erickcomp/laravel-raw-blade-components": "^3.0",
+        "laravel/framework": "^12.60|^13.10"
+    },
+    "require-dev": {
+        "larastan/larastan": "^3.0",
+        "orchestra/testbench": "^10.0|^11.0",
+        "pestphp/pest": "^4.0",
+        "pestphp/pest-plugin-type-coverage": "^4.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "ErickComp\\LazyBladeIcons\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "ErickComp\\LazyBladeIcons\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "ErickComp\\LazyBladeIcons\\LazyBladeIconsServiceProvider"
+            ]
+        }
+    },
+    "scripts": {
+        "test": "vendor/bin/pest",
+        "analyse": "vendor/bin/phpstan analyse --memory-limit=512M",
+        "bench": "@php benchmarks/run.php"
+    },
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        },
+        "sort-packages": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
