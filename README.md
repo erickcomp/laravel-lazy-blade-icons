@@ -204,6 +204,10 @@ Deferring 250 copies of one icon takes the HTML from 254.4 KB to 44.9 KB, in 6.2
 
 The package registers a single prefixed raw component through [erickcomp/laravel-raw-blade-components](https://packagist.org/packages/erickcomp/laravel-raw-blade-components), which rewrites the tags during Blade's `prepareStringsForCompilationUsing` pass — before the component compiler ever sees them. The compiled template calls `IconRenderer`, which asks `BladeUI\Icons\Factory` for the SVG and, when deferring, pushes the sprite through the view factory's own stack and once-tracking. There is no component class, no alias registration and no per-icon compiled view.
 
+`IconRenderer` memoizes that markup by icon name and attributes — attribute order included, since it is also their order in the output — so an icon repeated down a table is only built once. Deferred icons still push their sprite on every top-level render, because the view factory forgets its once-tracking when one finishes. An icon with an attribute that is neither a scalar nor null (an object handed straight to the renderer) is never memoized; Blade itself turns a bound `HtmlString` or other `Stringable` into a string before the tag sees it, so those are memoized by value.
+
+The renderer is a singleton, so the memo lives as long as it does: one request under PHP-FPM, and possibly many under a long-lived worker such as Octane. That is safe because the markup depends only on the icon sets and the blade-icons config; if you register a set or change that config at runtime, after icons have been rendered, call `app(\ErickComp\LazyBladeIcons\IconRenderer::class)->flush()`. The memo also starts over after 1,000 entries, so an attribute that differs on every row can't grow it without bound.
+
 ## Testing
 
 ```bash

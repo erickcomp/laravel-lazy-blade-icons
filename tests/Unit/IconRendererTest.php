@@ -7,6 +7,7 @@ use ErickComp\LazyBladeIcons\Exceptions\AmbiguousIconName;
 use ErickComp\LazyBladeIcons\Exceptions\InvalidIconTagUsage;
 use ErickComp\LazyBladeIcons\Exceptions\MissingIconName;
 use ErickComp\LazyBladeIcons\IconRenderer;
+use Illuminate\Support\HtmlString;
 use Illuminate\View\ComponentAttributeBag;
 use Illuminate\View\Factory as ViewFactory;
 
@@ -126,3 +127,85 @@ it('reads defer from the tag over the configured default', function (bool|string
     'namespaced with bare tag' => ['admin', true, 'icon-admin-'],
     'pinned by tag' => ['admin', 'my-id', 'icon-my-id'],
 ]);
+
+/** A renderer that reports how many icons it holds in its render memo. */
+function inspectableRenderer(int $limit = 1000): IconRenderer
+{
+    return new class(app(IconFactory::class), app(ViewFactory::class), $limit) extends IconRenderer
+    {
+        public function __construct(IconFactory $icons, ViewFactory $views, int $limit)
+        {
+            parent::__construct($icons, $views);
+
+            $this->svgMemoLimit = $limit;
+        }
+
+        public function memoized(): int
+        {
+            return count($this->svgMemo);
+        }
+    };
+}
+
+it('memoizes an icon once per name and attributes', function () {
+    $renderer = inspectableRenderer();
+
+    $renderer->render('test-icon', attrs(['class' => 'w-4']));
+    $renderer->render('test-icon', attrs(['class' => 'w-4', 'defer' => true]));
+    $renderer->renderFromTag('x-icon:dynamic', 'x-icon:', attrs(['is' => 'test-icon', 'class' => 'w-4']));
+
+    expect($renderer->memoized())->toBe(1);
+
+    $renderer->render('test-icon', attrs(['class' => 'w-6']));
+    $renderer->render('test-icon', attrs(['class' => 'w-4', 'id' => 'a']));
+
+    expect($renderer->memoized())->toBe(3);
+});
+
+it('does not memoize an icon with a non-scalar attribute', function () {
+    $renderer = inspectableRenderer();
+    $counter = new class implements Stringable
+    {
+        private int $calls = 0;
+
+        public function __toString(): string
+        {
+            return (string) ++$this->calls;
+        }
+    };
+
+    expect($renderer->render('test-icon', attrs(['data-n' => $counter])))->toContain('data-n="1"');
+    expect($renderer->render('test-icon', attrs(['data-n' => $counter])))->toContain('data-n="2"');
+    expect($renderer->render('test-icon', attrs(['data-x' => new HtmlString('a')])))->toContain('data-x="a"');
+    expect($renderer->memoized())->toBe(0);
+});
+
+it('starts the memo over once it reaches its limit', function () {
+    $renderer = inspectableRenderer(limit: 2);
+
+    foreach (['a', 'b', 'c'] as $id) {
+        expect($renderer->render('test-icon', attrs(['id' => $id])))
+            ->toBe(app(IconFactory::class)->svg('test-icon', '', ['id' => $id])->toHtml());
+    }
+
+    expect($renderer->memoized())->toBe(1);
+});
+
+it('picks up a set registered after the first render once flushed', function () {
+    config(['blade-icons.fallback' => 'test-fallback']);
+
+    $renderer = renderer();
+    $fallback = app(IconFactory::class)->svg('test-fallback')->toHtml();
+
+    expect($renderer->render('late-icon', attrs()))->toBe($fallback);
+
+    app(IconFactory::class)->add('late', ['paths' => [__DIR__ . '/../Fixtures/icons'], 'prefix' => 'late']);
+
+    expect($renderer->render('late-icon', attrs()))->toBe($fallback);
+
+    $renderer->flush();
+
+    expect($renderer->render('late-icon', attrs()))
+        ->toBe(app(IconFactory::class)->svg('late-icon')->toHtml())
+        ->not->toBe($fallback);
+});
